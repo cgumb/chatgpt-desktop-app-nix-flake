@@ -161,6 +161,9 @@ stdenv.mkDerivation {
     # fs.cp preserves read-only Nix store modes. The app must be able to edit
     # plugin variants in its staged cache before publishing a new marketplace.
     node ${./patch-plugin-permissions.cjs} app/.vite/build
+    # The local Work/dot executor uses a separate copy path and rewrites its
+    # app-tools manifest before cloud registration.
+    node ${./patch-executor-permissions.cjs} app/.vite/build
     asar pack app "$TMPDIR/app.asar" \
       --unpack-dir "{node_modules/@parcel,node_modules/@worklouder,node_modules/better-sqlite3,node_modules/node-pty}"
     cp "$TMPDIR/app.asar" "$out/lib/chatgpt/resources/app.asar"
@@ -192,6 +195,7 @@ stdenv.mkDerivation {
   installCheckPhase = ''
     runHook preInstallCheck
     node ${./test-plugin-permissions.cjs} app/.vite/build ${./patch-plugin-permissions.cjs}
+    node ${./test-executor-permissions.cjs} app/.vite/build ${./patch-executor-permissions.cjs}
     runHook postInstallCheck
   '';
 

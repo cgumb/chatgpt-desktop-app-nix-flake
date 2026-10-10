@@ -104,6 +104,16 @@ including manifest edits, directory removal, repeated updates, and source and
 symlink-target preservation. The build fails if the upstream copy helper changes
 so that the patch needs review.
 
+The local Work executor (also used for dot computer connections) has a separate
+plugin copy path. Before it rewrites the copied app-tools `.mcp.json`, a second
+adaptation makes the executor plugin cache owner-writable. Existing caches are
+also repaired before copying, so a retry can replace files in read-only
+directories. Symlinks are skipped and executable bits preserved. Otherwise the
+executor can loop on `EACCES` before cloud registration, while local Codex tasks
+continue to work. The build tests both first startup and repeated copies from
+read-only sources. This adaptation does not grant dot access: use the app's
+normal Allow access flow after the executor connects.
+
 ## Updating
 
 The scheduled workflow checks the ETags of both official packages every hour. When OpenAI publishes new artifacts, it downloads both architectures, validates their Debian metadata, requires matching versions, computes Nix SHA-256 hashes, builds the x86_64 package, evaluates every flake output, and commits the update.
