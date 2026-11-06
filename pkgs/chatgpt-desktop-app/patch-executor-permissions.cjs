@@ -3,12 +3,13 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const copyBranch = /await (?<fs>[\w$]+\.default)\.cp\((?<plugin>[\w$]+)\.cwd,(?<destination>[\w$]+),\{recursive:!0\}\)/g;
+// `Y.default.cp` up to 26.1007 (Vite); `Y().cp` from 26.1023 (webpack).
+const copyBranch = /await (?<fs>[\w$]+(?:\.default|\(\)))\.cp\((?<plugin>[\w$]+)\.cwd,(?<destination>[\w$]+),\{recursive:!0\}\)/g;
 
 function findCopyBranch(source) {
   const matches = [...source.matchAll(copyBranch)].filter(match => {
     const after = source.slice(match.index + match[0].length, match.index + match[0].length + 650);
-    return after.includes("CODEX_APP_TOOLS_CALLER_HOST_ID") && after.includes("`.mcp.json`") && after.includes(".writeFile(");
+    return after.includes("CODEX_APP_TOOLS_CALLER_HOST_ID") && after.includes(".mcp.json") && after.includes(".writeFile(");
   });
   if (matches.length !== 1) {
     throw new Error(`Expected one local executor plugin copy branch, found ${matches.length}`);
@@ -28,7 +29,7 @@ function patch(source) {
       if(stat.isSymbolicLink()||(!stat.isDirectory()&&!stat.isFile()))return;
       await ${api}.chmod(root,(stat.mode&0o7777)|0o200);
       if(stat.isDirectory())for(const name of await ${api}.readdir(root))
-        await writable(require("node:path").join(root,name));
+        await writable(root+"/"+name);
     }
     try{await writable(destination)}catch(error){if(error.code!=="ENOENT")throw error}
     await ${api}.cp(source,destination,{recursive:!0});
@@ -39,7 +40,7 @@ function patch(source) {
 
 function patchDirectory(directory) {
   const candidates = fs.readdirSync(directory)
-    .filter(name => /^main-.*\.js$/.test(name))
+    .filter(name => /^(main|early-bootstrap)-.*\.js$/.test(name))
     .map(name => path.join(directory, name))
     .filter(file => fs.readFileSync(file, "utf8").includes("Local Work executor startup failed"));
   if (candidates.length !== 1) throw new Error(`Expected one local executor main bundle, found ${candidates.length}`);
