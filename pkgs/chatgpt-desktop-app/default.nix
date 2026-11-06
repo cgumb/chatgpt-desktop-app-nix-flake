@@ -30,6 +30,7 @@
   libuuid,
   libva,
   libxkbcommon,
+  tpm2-tss,
   libx11,
   libxscrnsaver,
   libxcomposite,
@@ -61,6 +62,9 @@ let
       or (throw "chatgpt-desktop-app is not packaged for ${stdenv.hostPlatform.system}");
 
   runtimeLibs = [
+    # libtss2-{esys,mu,tcti-device} for resources/native/
+    # remote-control-device-key.node, new in 26.1103.
+    tpm2-tss
     alsa-lib
     at-spi2-core
     cairo
